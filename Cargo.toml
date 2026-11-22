@@ -1,0 +1,29 @@
+[package]
+name = "agent-orchestrator"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "skillctl: load, validate, route and export Agent Skills — first step of the agent-skills runtime layer"
+readme = "README.md"
+
+[[bin]]
+name = "skillctl"
+path = "src/main.rs"
+
+[dependencies]
+# CLI argument parsing with derive macros; de-facto standard.
+clap = { version = "4.6", features = ["derive"] }
+# Derive (de)serialization for frontmatter, contracts and verdicts.
+serde = { version = "1", features = ["derive"] }
+# YAML backend for serde; maintained fork of serde_yaml (deprecated on crates.io since 0.9.34).
+serde_norway = "0.9"
+# Typed library errors without boilerplate.
+thiserror = "2"
+# Error context and propagation in the binary only.
+anyhow = "1"
+# Writes per-skill .zip files for Claude.ai upload; pure-Rust deflate only, no other codecs.
+zip = { version = "9", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+
+[dev-dependencies]
+# Self-cleaning temp dirs for fixtures and export tests.
+tempfile = "3"
