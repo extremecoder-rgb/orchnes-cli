@@ -1,12 +1,12 @@
-use agent_orchestrator::export::{self, Format};
-use agent_orchestrator::gateway::{self, HttpTransport, Request};
-use agent_orchestrator::install::{self, Scope, Target};
-use agent_orchestrator::routing::{self, Factors, SENSITIVE_NOTE, Tier};
-use agent_orchestrator::runlog;
-use agent_orchestrator::skill::{self, Skill};
-use agent_orchestrator::validate;
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
+use orchnes::export::{self, Format};
+use orchnes::gateway::{self, HttpTransport, Request};
+use orchnes::install::{self, Scope, Target};
+use orchnes::routing::{self, Factors, SENSITIVE_NOTE, Tier};
+use orchnes::runlog;
+use orchnes::skill::{self, Skill};
+use orchnes::validate;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -14,7 +14,7 @@ use std::time::Duration;
 
 /// Load, validate, route and export Agent Skills, and call models through one gateway.
 #[derive(Parser)]
-#[command(name = "skillctl", version)]
+#[command(name = "orchnes", version)]
 struct Cli {
     /// Folder containing one subfolder per skill.
     #[arg(long, global = true, default_value = "skills")]
@@ -29,7 +29,7 @@ enum Command {
     List,
     /// Print a skill's SKILL.md.
     Show { name: String },
-    /// Check every skill like agent-skills' scripts/validate.py; exit 1 on errors.
+    /// Check every skill like orchnes-360's scripts/validate.py; exit 1 on errors.
     Validate,
     /// Pick a model tier with the agent-orchestra routing matrix (factors 1–3).
     Route {
@@ -54,12 +54,12 @@ enum Command {
     },
     /// List models in the gateway config and whether their API key is set.
     Models {
-        #[arg(long, default_value = "skillctl.yaml")]
+        #[arg(long, default_value = "orchnes.yaml")]
         config: PathBuf,
     },
     /// Send a prompt through the model gateway (tier routing, fallback, cost).
     Ask {
-        #[arg(long, default_value = "skillctl.yaml")]
+        #[arg(long, default_value = "orchnes.yaml")]
         config: PathBuf,
         /// Model tier; or give all four routing factors instead.
         #[arg(long, value_enum)]

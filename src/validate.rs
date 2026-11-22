@@ -1,4 +1,4 @@
-//! The checks of agent-skills' `scripts/validate.py`, reimplemented in Rust.
+//! The checks of orchnes-360' `scripts/validate.py`, reimplemented in Rust.
 //!
 //! Repo-level checks (evals file present, skill listed in README.md) run only when
 //! the skills folder's parent contains an `evals/` folder or a `README.md`.

@@ -1,13 +1,18 @@
 [package]
-name = "agent-orchestrator"
-version = "0.1.0"
+name = "orchnes"
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
-description = "skillctl: load, validate, route, export Agent Skills and call models through one gateway — first step of the agent-skills runtime layer"
+description = "Orchnes 360 CLI: install, validate, route and export Agent Skills, and call any model through one gateway"
+authors = ["Ömer Faruk Alibal"]
+repository = "https://github.com/orchnes/orchnes-cli"
+homepage = "https://github.com/orchnes/orchnes-360"
+keywords = ["agent-skills", "ai-agents", "llm", "orchestration", "cli"]
+categories = ["command-line-utilities", "development-tools"]
 readme = "README.md"
 
 [[bin]]
-name = "skillctl"
+name = "orchnes"
 path = "src/main.rs"
 
 [dependencies]

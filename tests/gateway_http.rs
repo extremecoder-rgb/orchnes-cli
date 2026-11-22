@@ -1,4 +1,4 @@
-//! End-to-end gateway tests: the real `skillctl` binary and HTTP client (ureq) against a
+//! End-to-end gateway tests: the real `orchnes` binary and HTTP client (ureq) against a
 //! tiny local HTTP server that plays the providers. No external network is used.
 
 use std::fs;
@@ -70,13 +70,13 @@ fn fake_provider(replies: Vec<(u16, &'static str)>) -> (String, mpsc::Receiver<S
     (base, rx)
 }
 
-fn skillctl(args: &[&str], envs: &[(&str, &str)]) -> Output {
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_skillctl"));
+fn orchnes(args: &[&str], envs: &[(&str, &str)]) -> Output {
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_orchnes"));
     cmd.args(args).env_remove("RUST_BACKTRACE");
     for (k, v) in envs {
         cmd.env(k, v);
     }
-    cmd.output().expect("run skillctl")
+    cmd.output().expect("run orchnes")
 }
 
 fn text(b: &[u8]) -> String {
@@ -91,7 +91,7 @@ const OPENAI_OK: &str = r#"{"choices":[{"message":{"content":"Merhaba!"},"finish
 fn ask_falls_back_over_real_http_and_logs() {
     let (base, rx) = fake_provider(vec![(529, ANTHROPIC_OVERLOADED), (200, OPENAI_OK)]);
     let dir = tempfile::tempdir().unwrap();
-    let cfg = dir.path().join("skillctl.yaml");
+    let cfg = dir.path().join("orchnes.yaml");
     fs::write(
         &cfg,
         format!(
@@ -102,7 +102,7 @@ fn ask_falls_back_over_real_http_and_logs() {
     )
     .unwrap();
     let log = dir.path().join("run.log");
-    let o = skillctl(
+    let o = orchnes(
         &[
             "ask",
             "--config",
@@ -161,7 +161,7 @@ fn sensitive_requests_never_reach_hosted_models() {
         "models:\n  - {id: hosted, provider: anthropic, base_url: 'http://127.0.0.1:9', model: m, tier: T1, api_key_env: K}\n",
     )
     .unwrap();
-    let o = skillctl(
+    let o = orchnes(
         &[
             "ask",
             "--config",
@@ -187,7 +187,7 @@ fn dry_run_and_models_never_print_keys() {
     )
     .unwrap();
     let envs = [("SECRET_KEY_VAR", "sk-should-not-appear")];
-    let o = skillctl(
+    let o = orchnes(
         &[
             "ask",
             "--config",
@@ -212,7 +212,7 @@ fn dry_run_and_models_never_print_keys() {
     assert!(out.contains("x-api-key: ***"), "{out}");
     assert!(!out.contains("sk-should-not-appear"));
 
-    let o = skillctl(&["models", "--config", cfg.to_str().unwrap()], &envs);
+    let o = orchnes(&["models", "--config", cfg.to_str().unwrap()], &envs);
     let out = text(&o.stdout);
     assert!(out.contains("key SECRET_KEY_VAR: set"), "{out}");
     assert!(out.contains("key OTHER_KEY_VAR: MISSING"), "{out}");

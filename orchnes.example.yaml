@@ -1,11 +1,11 @@
-# Model gateway config for `skillctl ask` / `skillctl models`.
-# Copy to skillctl.yaml and edit. API keys are NEVER written here: each model names the
+# Model gateway config for `orchnes ask` / `orchnes models`.
+# Copy to orchnes.yaml and edit. API keys are NEVER written here: each model names the
 # environment variable that holds its key (api_key_env). Prices are USD per 1M tokens —
 # check your provider's current pricing; the values below are examples dated 2026-11.
 #
 # provider: openai    → any OpenAI-compatible Chat Completions API (base_url ends at /v1 or equivalent)
 # provider: anthropic → Anthropic Messages API (base_url https://api.anthropic.com)
-# tier: T1 top-ranked · T2 strong mid-cost · T3 small/free/local (see `skillctl route`)
+# tier: T1 top-ranked · T2 strong mid-cost · T3 small/free/local (see `orchnes route`)
 # local: true / compliant: true → allowed for `--sensitive` requests
 
 timeout_secs: 600

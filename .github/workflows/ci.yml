@@ -16,11 +16,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The skills library, so integration tests also run against the real 26 skills.
+      - uses: actions/checkout@v4
+        with:
+          repository: orchnes/orchnes-360
+          path: orchnes-360
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
-      # Tests against the real agent-skills repo are skipped unless AGENT_SKILLS_DIR
-      # points at its skills/ folder (or ../agent-skills/skills exists).
       - run: cargo test
+        env:
+          ORCHNES_SKILLS_DIR: ${{ github.workspace }}/orchnes-360/skills

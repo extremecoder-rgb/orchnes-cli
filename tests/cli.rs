@@ -1,16 +1,16 @@
-//! Runs the `skillctl` binary against a temp fixture and, when present, the real
-//! agent-skills repo (read-only). Set AGENT_SKILLS_DIR to point at its `skills/` folder;
-//! default is `../agent-skills/skills` next to this crate.
+//! Runs the `orchnes` binary against a temp fixture and, when present, the real
+//! orchnes-360 repo (read-only). Set ORCHNES_SKILLS_DIR to point at its `skills/` folder;
+//! default is `../orchnes-360/skills` next to this crate.
 
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-fn skillctl(args: &[&str]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_skillctl"))
+fn orchnes(args: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_orchnes"))
         .args(args)
         .output()
-        .expect("run skillctl")
+        .expect("run orchnes")
 }
 
 fn stdout(o: &Output) -> String {
@@ -21,15 +21,15 @@ fn stderr(o: &Output) -> String {
     String::from_utf8_lossy(&o.stderr).into_owned()
 }
 
-/// The real agent-skills `skills/` folder, or None (test prints why it is skipped).
+/// The real orchnes-360 `skills/` folder, or None (test prints why it is skipped).
 fn real_skills() -> Option<String> {
-    let dir = std::env::var("AGENT_SKILLS_DIR")
+    let dir = std::env::var("ORCHNES_SKILLS_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| Path::new(env!("CARGO_MANIFEST_DIR")).join("../agent-skills/skills"));
+        .unwrap_or_else(|_| Path::new(env!("CARGO_MANIFEST_DIR")).join("../orchnes-360/skills"));
     if dir.is_dir() {
         Some(dir.to_string_lossy().into_owned())
     } else {
-        eprintln!("SKIPPED: agent-skills not found at {}", dir.display());
+        eprintln!("SKIPPED: orchnes-360 not found at {}", dir.display());
         None
     }
 }
@@ -60,7 +60,7 @@ fn fixture() -> (tempfile::TempDir, String) {
 #[test]
 fn validate_reports_broken_fixture() {
     let (_tmp, dir) = fixture();
-    let o = skillctl(&["validate", "--skills-dir", &dir]);
+    let o = orchnes(&["validate", "--skills-dir", &dir]);
     assert_eq!(o.status.code(), Some(1));
     assert_eq!(
         stdout(&o),
@@ -74,7 +74,7 @@ fn validate_reports_broken_fixture() {
 #[test]
 fn list_fails_on_broken_fixture_and_works_without_it() {
     let (tmp, dir) = fixture();
-    let o = skillctl(&["list", "--skills-dir", &dir]);
+    let o = orchnes(&["list", "--skills-dir", &dir]);
     assert!(!o.status.success());
     assert!(
         stderr(&o).contains("broken: invalid name 'Broken_Name'"),
@@ -83,7 +83,7 @@ fn list_fails_on_broken_fixture_and_works_without_it() {
     );
 
     fs::remove_dir_all(tmp.path().join("skills/broken")).unwrap();
-    let o = skillctl(&["list", "--skills-dir", &dir]);
+    let o = orchnes(&["list", "--skills-dir", &dir]);
     assert!(o.status.success());
     assert_eq!(
         stdout(&o).split_whitespace().collect::<Vec<_>>(),
@@ -94,7 +94,7 @@ fn list_fails_on_broken_fixture_and_works_without_it() {
 #[test]
 fn show_rejects_path_like_names() {
     let (_tmp, dir) = fixture();
-    let o = skillctl(&["show", "../good", "--skills-dir", &dir]);
+    let o = orchnes(&["show", "../good", "--skills-dir", &dir]);
     assert!(!o.status.success());
     assert!(stderr(&o).contains("invalid skill name"));
 }
@@ -114,7 +114,7 @@ fn route_tiers() {
             k,
         ];
         args.extend_from_slice(extra);
-        stdout(&skillctl(&args))
+        stdout(&orchnes(&args))
     };
     assert_eq!(
         run("1", "2", "1", "2", &[]),
@@ -125,7 +125,7 @@ fn route_tiers() {
         run("1", "3", "1", "1", &["--sensitive"]),
         "tier: T1\nreason: risk = 3 (any factor 3 → T1)\nproviders: local/compliant providers only\n"
     );
-    let o = skillctl(&[
+    let o = orchnes(&[
         "route",
         "--complexity",
         "4",
@@ -144,7 +144,7 @@ fn install_into_user_scope_with_temp_home() {
     let (tmp, dir) = fixture();
     fs::remove_dir_all(tmp.path().join("skills/broken")).unwrap();
     let home = tmp.path().join("home");
-    let o = Command::new(env!("CARGO_BIN_EXE_skillctl"))
+    let o = Command::new(env!("CARGO_BIN_EXE_orchnes"))
         .args([
             "install",
             "--target",
@@ -172,13 +172,13 @@ fn install_into_user_scope_with_temp_home() {
         &dir,
         "good",
     ];
-    assert!(skillctl(&args).status.success());
+    assert!(orchnes(&args).status.success());
     assert!(
         tmp.path()
             .join("proj/.agents/skills/good/SKILL.md")
             .is_file()
     );
-    let again = skillctl(&args);
+    let again = orchnes(&args);
     assert!(!again.status.success());
     assert!(stderr(&again).contains("--force"));
 }
@@ -186,7 +186,7 @@ fn install_into_user_scope_with_temp_home() {
 #[test]
 fn real_repo_validate_list_show() {
     let Some(dir) = real_skills() else { return };
-    let o = skillctl(&["validate", "--skills-dir", &dir]);
+    let o = orchnes(&["validate", "--skills-dir", &dir]);
     assert!(o.status.success(), "{}", stdout(&o));
     assert!(
         stdout(&o).ends_with("26 skills checked, 0 errors\n"),
@@ -194,11 +194,11 @@ fn real_repo_validate_list_show() {
         stdout(&o)
     );
 
-    let list = stdout(&skillctl(&["list", "--skills-dir", &dir]));
+    let list = stdout(&orchnes(&["list", "--skills-dir", &dir]));
     assert_eq!(list.lines().count(), 26);
     assert!(list.lines().any(|l| l.starts_with("agent-orchestra ")));
 
-    let shown = skillctl(&["show", "agent-behavior", "--skills-dir", &dir]);
+    let shown = orchnes(&["show", "agent-behavior", "--skills-dir", &dir]);
     let file = fs::read_to_string(Path::new(&dir).join("agent-behavior/SKILL.md")).unwrap();
     assert_eq!(stdout(&shown), file);
 }
@@ -225,7 +225,7 @@ fn real_repo_export_every_format() {
             out.path().to_path_buf()
         };
         let target = target.to_string_lossy().into_owned();
-        let o = skillctl(&[
+        let o = orchnes(&[
             "export",
             "--format",
             format,

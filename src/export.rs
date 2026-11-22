@@ -19,7 +19,7 @@ pub enum Format {
     Bundle,
     /// .cursor/rules/<name>.mdc per skill
     Cursor,
-    /// .github/copilot-instructions.md: index of skills + agent-behavior (install skills natively with `skillctl install --target copilot`)
+    /// .github/copilot-instructions.md: index of skills + agent-behavior (install skills natively with `orchnes install --target copilot`)
     Copilot,
     /// GEMINI.md (same content as agents-md)
     Gemini,
@@ -79,7 +79,7 @@ pub fn export(skills: &[Skill], format: Format, out: &Path) -> Result<Vec<PathBu
     Ok(written)
 }
 
-/// Native install location used in generated index files (`skillctl install --target agents`).
+/// Native install location used in generated index files (`orchnes install --target agents`).
 const SKILLS_DIR: &str = ".agents/skills";
 
 /// Files for `format`, with paths relative to the output dir.
@@ -108,7 +108,7 @@ fn index(skills: &[Skill], link: impl Fn(&Skill) -> String) -> String {
 fn agents_md(skills: &[Skill], file: &str) -> OutFile {
     let mut s = format!(
         "# Agent skills\n\n\
-         This project uses Agent Skills, installed in `{SKILLS_DIR}/` (run `skillctl install --target agents`).\n\
+         This project uses Agent Skills, installed in `{SKILLS_DIR}/` (run `orchnes install --target agents`).\n\
          Each skill is a folder with a SKILL.md and optional references/.\n\
          When a task matches a skill's description, read that skill's SKILL.md before starting and follow it;\n\
          read files under its references/ only when SKILL.md points to them.\n\n## Skills\n\n",
@@ -142,7 +142,7 @@ fn bundle(skills: &[Skill], file: &str) -> OutFile {
 fn rule_body(sk: &Skill) -> String {
     if sk.dir.join("references").is_dir() {
         format!(
-            "> Reference files mentioned below are in `{SKILLS_DIR}/{}/references/` (install with `skillctl install --target agents`).\n\n{}",
+            "> Reference files mentioned below are in `{SKILLS_DIR}/{}/references/` (install with `orchnes install --target agents`).\n\n{}",
             sk.name(),
             sk.body
         )
@@ -168,7 +168,7 @@ fn copilot(skills: &[Skill]) -> Vec<OutFile> {
     // applyTo "**" would inject every skill into every request, so only the index is exported.
     let mut main = String::from(
         "# Copilot instructions\n\n\
-         Agent Skills are installed in `.github/skills/` (run `skillctl install --target copilot`).\n\
+         Agent Skills are installed in `.github/skills/` (run `orchnes install --target copilot`).\n\
          When a task matches a skill's description, follow that skill.\n\n## Skills\n\n",
     );
     main += &index(skills, |sk| {
@@ -311,7 +311,7 @@ mod tests {
         let out = tmp.path();
         assert_eq!(
             render_one(&skills, Format::Cursor, out, ".cursor/rules/demo.mdc"),
-            "---\ndescription: Demo skill.\nglobs:\nalwaysApply: false\n---\n\n> Reference files mentioned below are in `.agents/skills/demo/references/` (install with `skillctl install --target agents`).\n\n# demo\nBody of demo.\n"
+            "---\ndescription: Demo skill.\nglobs:\nalwaysApply: false\n---\n\n> Reference files mentioned below are in `.agents/skills/demo/references/` (install with `orchnes install --target agents`).\n\n# demo\nBody of demo.\n"
         );
         assert!(
             render_one(

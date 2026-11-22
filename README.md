@@ -1,8 +1,20 @@
-# agent-orchestrator
+# orchnes — Orchnes 360 CLI
 
-`skillctl` is a small command-line tool for [Agent Skills](https://agentskills.io): skill folders, each with a `SKILL.md` and an optional `references/` folder. It loads and validates skills, routes tasks to model tiers, exports skills to other agents' instruction formats, and installs skill folders where each agent looks for them.
+[![CI](https://github.com/orchnes/orchnes-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/orchnes/orchnes-cli/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Rust](https://img.shields.io/badge/Rust-2024-orange)
 
-It is the first step of the **runtime layer** described in the agent-skills repo's `ROADMAP.md`. The skills hold the knowledge. The runtime will run them across models, continuously. This MVP makes no network calls and does not use an async runtime.
+`orchnes` is the command-line companion of [**Orchnes 360**](https://github.com/orchnes/orchnes-360), a library of [Agent Skills](https://agentskills.io)
+(skill folders, each with a `SKILL.md` and an optional `references/` folder). It installs skills into any AI agent, validates them,
+exports them to other agents' instruction formats, routes tasks to model tiers, and calls hosted or local models through one gateway.
+
+It is the first step of the **runtime layer** in the Orchnes 360 [`ROADMAP.md`](https://github.com/orchnes/orchnes-360/blob/main/ROADMAP.md):
+the skills hold the knowledge; the runtime runs them across models.
+
+```sh
+cargo install --git https://github.com/orchnes/orchnes-cli
+git clone https://github.com/orchnes/orchnes-360 && cd orchnes-360
+orchnes install --target agents      # Codex, Cursor, Copilot, Gemini CLI, Windsurf read .agents/skills/
+orchnes ask --tier T2 "Plan a newsletter signup feature"
+```
 
 ## Install
 
@@ -18,30 +30,30 @@ Every command reads skills from `--skills-dir` (default `./skills`).
 
 ```sh
 # Name + first sentence of each description
-skillctl list --skills-dir ../agent-skills/skills
+orchnes list --skills-dir ../orchnes-360/skills
 
 # Print a skill's SKILL.md
-skillctl show agent-orchestra
+orchnes show agent-orchestra
 
-# Same checks as agent-skills' scripts/validate.py; exit code 1 on errors
-skillctl validate
+# Same checks as orchnes-360's scripts/validate.py; exit code 1 on errors
+orchnes validate
 
 # Routing matrix from agent-orchestra (each factor 1–3)
-skillctl route --complexity 2 --risk 2 --context 2 --capability 1
+orchnes route --complexity 2 --risk 2 --context 2 --capability 1
 # tier: T2
 # reason: all factors ≤ 2, sum 7 (7–8 → T2)
-skillctl route --complexity 1 --risk 3 --context 1 --capability 1 --sensitive
+orchnes route --complexity 1 --risk 3 --context 1 --capability 1 --sensitive
 # tier: T1
 # reason: risk = 3 (any factor 3 → T1)
 # providers: local/compliant providers only
 
 # Export to another tool's format
-skillctl export --format cursor --out .
+orchnes export --format cursor --out .
 
 # Copy skill folders into an agent's native skills directory
-skillctl install --target claude                 # ./.claude/skills/<name>/
-skillctl install --target agents --scope user    # ~/.agents/skills/<name>/
-skillctl install --target cursor --dest ../app agent-behavior memory
+orchnes install --target claude                 # ./.claude/skills/<name>/
+orchnes install --target agents --scope user    # ~/.agents/skills/<name>/
+orchnes install --target cursor --dest ../app agent-behavior memory
 ```
 
 ### Validation
@@ -61,12 +73,12 @@ The rule from `skills/agent-orchestra/references/routing-matrix.md`: if any fact
 | `bundle` | `SKILLS.md`: table of contents plus every SKILL.md body, for system prompts or custom instructions |
 | `aider` | `CONVENTIONS.md`, with the same content as `bundle` |
 | `cursor` | `.cursor/rules/<name>.mdc` with `description`, empty `globs` and `alwaysApply: false` (`true` for `agent-behavior`) |
-| `copilot` | `.github/copilot-instructions.md`: index of skills (pointing to `.github/skills/`) + `agent-behavior` body. Copilot loads skills natively, so install them with `skillctl install --target copilot` instead of per-file instructions that would load every skill on every request |
+| `copilot` | `.github/copilot-instructions.md`: index of skills (pointing to `.github/skills/`) + `agent-behavior` body. Copilot loads skills natively, so install them with `orchnes install --target copilot` instead of per-file instructions that would load every skill on every request |
 | `windsurf` | `.windsurf/rules/<name>.md` with `trigger: model_decision` (`always_on` for `agent-behavior`) and `description` |
 | `continue` | `.continue/rules/<name>.md` with `name`, `description` and `alwaysApply` |
 | `claude-zip` | `<name>.zip` per skill, with the skill folder at the archive root, for upload to Claude.ai |
 
-Rule formats (`cursor`, `windsurf`, `continue`) contain only the SKILL.md body, with a note pointing to `.agents/skills/<name>/references/`; run `skillctl install --target agents` so those reference files exist. `AGENTS.md`/`GEMINI.md` index entries point to the same install location.
+Rule formats (`cursor`, `windsurf`, `continue`) contain only the SKILL.md body, with a note pointing to `.agents/skills/<name>/references/`; run `orchnes install --target agents` so those reference files exist. `AGENTS.md`/`GEMINI.md` index entries point to the same install location.
 
 Gemini CLI can also read `AGENTS.md` directly if you add `{"context":{"fileName":["AGENTS.md","GEMINI.md"]}}` to its `settings.json`.
 
@@ -86,7 +98,7 @@ If a skill folder already exists at the destination, `install` refuses to contin
 
 ## Model gateway
 
-`skillctl ask` sends a prompt to a model through one interface and `skillctl models` shows what is configured.
+`orchnes ask` sends a prompt to a model through one interface and `orchnes models` shows what is configured.
 Two adapters cover most models:
 
 | `provider` | API | Works with |
@@ -95,14 +107,14 @@ Two adapters cover most models:
 | `anthropic` | Anthropic Messages `POST {base_url}/v1/messages` (`anthropic-version: 2026-10-21`) | Claude models |
 
 ```sh
-cp skillctl.example.yaml skillctl.yaml          # edit models, tiers, prices
+cp orchnes.example.yaml orchnes.yaml          # edit models, tiers, prices
 export ANTHROPIC_API_KEY=...                    # keys only via the env vars named in the config
-skillctl models                                 # tier, provider, local/hosted, key set/MISSING (never the value)
-skillctl ask --tier T2 "Summarize this in 3 bullets: ..."
-skillctl ask --complexity 2 --risk 3 --context 1 --capability 2 --skill security-operations "Review this config: ..."
-skillctl ask --tier T3 --sensitive - < patient-notes.txt   # only local/compliant models
-skillctl ask --tier T1 --dry-run "..."          # print the request (keys masked) without sending
-skillctl ask --tier T2 --log run.log "..."      # append an agent-orchestra run-log line
+orchnes models                                 # tier, provider, local/hosted, key set/MISSING (never the value)
+orchnes ask --tier T2 "Summarize this in 3 bullets: ..."
+orchnes ask --complexity 2 --risk 3 --context 1 --capability 2 --skill security-operations "Review this config: ..."
+orchnes ask --tier T3 --sensitive - < patient-notes.txt   # only local/compliant models
+orchnes ask --tier T1 --dry-run "..."          # print the request (keys masked) without sending
+orchnes ask --tier T2 --log run.log "..."      # append an agent-orchestra run-log line
 ```
 
 How it chooses and recovers:
@@ -119,7 +131,7 @@ Requests are blocking and non-streaming (default `--max-tokens 16000`, `timeout_
 
 ## Library
 
-The crate is also a library (`agent_orchestrator`) with these modules for later runtime work:
+The crate is also a library (`orchnes`) with these modules for later runtime work:
 
 - `skill`: parse frontmatter, load and check skills.
 - `validate`: the validate.py checks.
@@ -135,7 +147,7 @@ The crate is also a library (`agent_orchestrator`) with these modules for later 
 cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test
 ```
 
-Integration tests run the binary against temporary fixtures. `tests/gateway_http.rs` runs `skillctl ask` over real HTTP against a local fake provider (no external network). They also run against the real agent-skills repo, read-only, when it is at `../agent-skills/skills` or at the path in `AGENT_SKILLS_DIR`. If neither exists, those tests print `SKIPPED` and pass.
+Integration tests run the binary against temporary fixtures. `tests/gateway_http.rs` runs `orchnes ask` over real HTTP against a local fake provider (no external network). They also run against the real orchnes-360 repo, read-only, when it is at `../orchnes-360/skills` or at the path in `ORCHNES_SKILLS_DIR`. If neither exists, those tests print `SKIPPED` and pass.
 
 ## Not implemented yet (roadmap)
 
@@ -147,4 +159,4 @@ Integration tests run the binary against temporary fixtures. `tests/gateway_http
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT © Ömer Faruk Alibal · [Orchnes](https://github.com/orchnes). See [LICENSE](LICENSE). Changes: [CHANGELOG.md](CHANGELOG.md). Security: [SECURITY.md](SECURITY.md).

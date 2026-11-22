@@ -1,4 +1,4 @@
-//! Library behind `skillctl`: load Agent Skills, validate them, route tasks
+//! Library behind `orchnes`: load Agent Skills, validate them, route tasks
 //! across model tiers, call models through one gateway, and export skills to other
 //! agents' instruction formats.
 //! `contract` and `runlog` are the data formats later runtime work builds on.
