@@ -213,11 +213,7 @@ fn real_repo_export_every_format() {
         ("gemini", 1, "GEMINI.md"),
         ("aider", 1, "CONVENTIONS.md"),
         ("cursor", 26, ".cursor/rules/agent-behavior.mdc"),
-        (
-            "copilot",
-            27,
-            ".github/instructions/planner.instructions.md",
-        ),
+        ("copilot", 1, ".github/copilot-instructions.md"),
         ("windsurf", 26, ".windsurf/rules/memory.md"),
         ("continue", 26, ".continue/rules/research.md"),
         ("claude-zip", 26, "zips/agent-orchestra.zip"),

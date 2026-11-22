@@ -65,8 +65,17 @@ enum Command {
     },
 }
 
-fn main() -> Result<ExitCode> {
-    let cli = Cli::parse();
+fn main() -> ExitCode {
+    match run(Cli::parse()) {
+        Ok(code) => code,
+        Err(e) => {
+            eprintln!("error: {e:#}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+fn run(cli: Cli) -> Result<ExitCode> {
     let dir = &cli.skills_dir;
     match cli.command {
         Command::List => {

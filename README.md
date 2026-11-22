@@ -61,10 +61,12 @@ The rule from `skills/agent-orchestra/references/routing-matrix.md`: if any fact
 | `bundle` | `SKILLS.md`: table of contents plus every SKILL.md body, for system prompts or custom instructions |
 | `aider` | `CONVENTIONS.md`, with the same content as `bundle` |
 | `cursor` | `.cursor/rules/<name>.mdc` with `description`, empty `globs` and `alwaysApply: false` (`true` for `agent-behavior`) |
-| `copilot` | `.github/copilot-instructions.md` (index + `agent-behavior` body) and `.github/instructions/<name>.instructions.md` with `applyTo: "**"` |
+| `copilot` | `.github/copilot-instructions.md`: index of skills (pointing to `.github/skills/`) + `agent-behavior` body. Copilot loads skills natively, so install them with `skillctl install --target copilot` instead of per-file instructions that would load every skill on every request |
 | `windsurf` | `.windsurf/rules/<name>.md` with `trigger: model_decision` (`always_on` for `agent-behavior`) and `description` |
 | `continue` | `.continue/rules/<name>.md` with `name`, `description` and `alwaysApply` |
 | `claude-zip` | `<name>.zip` per skill, with the skill folder at the archive root, for upload to Claude.ai |
+
+Rule formats (`cursor`, `windsurf`, `continue`) contain only the SKILL.md body, with a note pointing to `.agents/skills/<name>/references/`; run `skillctl install --target agents` so those reference files exist. `AGENTS.md`/`GEMINI.md` index entries point to the same install location.
 
 Gemini CLI can also read `AGENTS.md` directly if you add `{"context":{"fileName":["AGENTS.md","GEMINI.md"]}}` to its `settings.json`.
 

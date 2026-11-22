@@ -6,7 +6,7 @@
 use crate::skill::Skill;
 use std::fs;
 use std::io::{Cursor, Write};
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 /// The skill applied to every request where a format supports "always on".
 pub const ALWAYS_ON: &str = "agent-behavior";
@@ -19,7 +19,7 @@ pub enum Format {
     Bundle,
     /// .cursor/rules/<name>.mdc per skill
     Cursor,
-    /// .github/copilot-instructions.md + .github/instructions/<name>.instructions.md
+    /// .github/copilot-instructions.md: index of skills + agent-behavior (install skills natively with `skillctl install --target copilot`)
     Copilot,
     /// GEMINI.md (same content as agents-md)
     Gemini,
@@ -66,7 +66,7 @@ fn text(path: impl Into<PathBuf>, s: String) -> OutFile {
 /// Renders `format` and writes it under `out`. Returns the written paths.
 pub fn export(skills: &[Skill], format: Format, out: &Path) -> Result<Vec<PathBuf>, ExportError> {
     fs::create_dir_all(out).map_err(io_err(out))?;
-    let files = render(skills, format, out)?;
+    let files = render(skills, format)?;
     let mut written = Vec::with_capacity(files.len());
     for f in files {
         let path = out.join(&f.path);
@@ -79,11 +79,14 @@ pub fn export(skills: &[Skill], format: Format, out: &Path) -> Result<Vec<PathBu
     Ok(written)
 }
 
-/// Files for `format`; `out` is only used to make SKILL.md links relative to it.
-pub fn render(skills: &[Skill], format: Format, out: &Path) -> Result<Vec<OutFile>, ExportError> {
+/// Native install location used in generated index files (`skillctl install --target agents`).
+const SKILLS_DIR: &str = ".agents/skills";
+
+/// Files for `format`, with paths relative to the output dir.
+pub fn render(skills: &[Skill], format: Format) -> Result<Vec<OutFile>, ExportError> {
     Ok(match format {
-        Format::AgentsMd => vec![agents_md(skills, out, "AGENTS.md")],
-        Format::Gemini => vec![agents_md(skills, out, "GEMINI.md")],
+        Format::AgentsMd => vec![agents_md(skills, "AGENTS.md")],
+        Format::Gemini => vec![agents_md(skills, "GEMINI.md")],
         Format::Bundle => vec![bundle(skills, "SKILLS.md")],
         Format::Aider => vec![bundle(skills, "CONVENTIONS.md")],
         Format::Cursor => skills.iter().map(cursor_rule).collect(),
@@ -102,14 +105,15 @@ fn index(skills: &[Skill], link: impl Fn(&Skill) -> String) -> String {
         .collect()
 }
 
-fn agents_md(skills: &[Skill], out: &Path, file: &str) -> OutFile {
-    let mut s = String::from(
+fn agents_md(skills: &[Skill], file: &str) -> OutFile {
+    let mut s = format!(
         "# Agent skills\n\n\
-         This project uses Agent Skills. Each skill below is a folder with a SKILL.md and optional references/.\n\
+         This project uses Agent Skills, installed in `{SKILLS_DIR}/` (run `skillctl install --target agents`).\n\
+         Each skill is a folder with a SKILL.md and optional references/.\n\
          When a task matches a skill's description, read that skill's SKILL.md before starting and follow it;\n\
          read files under its references/ only when SKILL.md points to them.\n\n## Skills\n\n",
     );
-    s += &index(skills, |sk| relative_display(&sk.skill_md(), out));
+    s += &index(skills, |sk| format!("{SKILLS_DIR}/{}/SKILL.md", sk.name()));
     text(file, s)
 }
 
@@ -134,6 +138,19 @@ fn bundle(skills: &[Skill], file: &str) -> OutFile {
     text(file, s)
 }
 
+/// Rule files carry only the SKILL.md body; point to the installed folder for references/.
+fn rule_body(sk: &Skill) -> String {
+    if sk.dir.join("references").is_dir() {
+        format!(
+            "> Reference files mentioned below are in `{SKILLS_DIR}/{}/references/` (install with `skillctl install --target agents`).\n\n{}",
+            sk.name(),
+            sk.body
+        )
+    } else {
+        sk.body.clone()
+    }
+}
+
 fn cursor_rule(sk: &Skill) -> OutFile {
     let always = sk.name() == ALWAYS_ON;
     text(
@@ -141,34 +158,26 @@ fn cursor_rule(sk: &Skill) -> OutFile {
         format!(
             "---\ndescription: {}\nglobs:\nalwaysApply: {always}\n---\n\n{}",
             sk.description(),
-            sk.body
+            rule_body(sk)
         ),
     )
 }
 
 fn copilot(skills: &[Skill]) -> Vec<OutFile> {
+    // Copilot loads Agent Skills natively from .github/skills/; per-skill instruction files with
+    // applyTo "**" would inject every skill into every request, so only the index is exported.
     let mut main = String::from(
         "# Copilot instructions\n\n\
-         Skills are available as instruction files. When a task matches a skill's description, follow that skill.\n\n## Skills\n\n",
+         Agent Skills are installed in `.github/skills/` (run `skillctl install --target copilot`).\n\
+         When a task matches a skill's description, follow that skill.\n\n## Skills\n\n",
     );
     main += &index(skills, |sk| {
-        format!(".github/instructions/{}.instructions.md", sk.name())
+        format!(".github/skills/{}/SKILL.md", sk.name())
     });
     if let Some(core) = skills.iter().find(|s| s.name() == ALWAYS_ON) {
         main += &format!("\n## {ALWAYS_ON}\n\n{}", core.body);
     }
-    let mut files = vec![text(".github/copilot-instructions.md", main)];
-    files.extend(skills.iter().map(|sk| {
-        text(
-            format!(".github/instructions/{}.instructions.md", sk.name()),
-            format!(
-                "---\napplyTo: \"**\"\ndescription: {}\n---\n\n{}",
-                sk.description(),
-                sk.body
-            ),
-        )
-    }));
-    files
+    vec![text(".github/copilot-instructions.md", main)]
 }
 
 fn windsurf_rule(sk: &Skill) -> OutFile {
@@ -182,7 +191,7 @@ fn windsurf_rule(sk: &Skill) -> OutFile {
         format!(
             "---\ntrigger: {trigger}\ndescription: {}\n---\n\n{}",
             sk.description(),
-            sk.body
+            rule_body(sk)
         ),
     )
 }
@@ -195,7 +204,7 @@ fn continue_rule(sk: &Skill) -> OutFile {
             sk.name(),
             sk.description(),
             sk.name() == ALWAYS_ON,
-            sk.body
+            rule_body(sk)
         ),
     )
 }
@@ -241,21 +250,6 @@ pub fn files_under(dir: &Path) -> Result<Vec<PathBuf>, ExportError> {
     Ok(files)
 }
 
-/// `target` relative to `base` with `/` separators; absolute path if either can't be resolved.
-fn relative_display(target: &Path, base: &Path) -> String {
-    let (Ok(t), Ok(b)) = (target.canonicalize(), base.canonicalize()) else {
-        return target.display().to_string();
-    };
-    let tc: Vec<Component> = t.components().collect();
-    let bc: Vec<Component> = b.components().collect();
-    let common = tc.iter().zip(&bc).take_while(|(x, y)| x == y).count();
-    let ups = std::iter::repeat_n("..".to_string(), bc.len() - common);
-    let downs = tc[common..]
-        .iter()
-        .map(|c| c.as_os_str().to_string_lossy().into_owned());
-    ups.chain(downs).collect::<Vec<_>>().join("/")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -279,8 +273,8 @@ mod tests {
         (tmp, skills)
     }
 
-    fn render_one(skills: &[Skill], format: Format, out: &Path, path: &str) -> String {
-        let files = render(skills, format, out).unwrap();
+    fn render_one(skills: &[Skill], format: Format, _out: &Path, path: &str) -> String {
+        let files = render(skills, format).unwrap();
         let f = files
             .iter()
             .find(|f| f.path == Path::new(path))
@@ -289,11 +283,11 @@ mod tests {
     }
 
     #[test]
-    fn agents_md_links_relative_to_out() {
+    fn agents_md_links_to_install_dir() {
         let (tmp, skills) = fixture();
         let s = render_one(&skills, Format::AgentsMd, tmp.path(), "AGENTS.md");
         assert!(
-            s.contains("- **demo** — Demo skill. (`skills/demo/SKILL.md`)"),
+            s.contains("- **demo** — Demo skill. (`.agents/skills/demo/SKILL.md`)"),
             "{s}"
         );
         let g = render_one(&skills, Format::Gemini, tmp.path(), "GEMINI.md");
@@ -317,7 +311,7 @@ mod tests {
         let out = tmp.path();
         assert_eq!(
             render_one(&skills, Format::Cursor, out, ".cursor/rules/demo.mdc"),
-            "---\ndescription: Demo skill.\nglobs:\nalwaysApply: false\n---\n\n# demo\nBody of demo.\n"
+            "---\ndescription: Demo skill.\nglobs:\nalwaysApply: false\n---\n\n> Reference files mentioned below are in `.agents/skills/demo/references/` (install with `skillctl install --target agents`).\n\n# demo\nBody of demo.\n"
         );
         assert!(
             render_one(
@@ -358,16 +352,14 @@ mod tests {
             out,
             ".github/copilot-instructions.md",
         );
-        assert!(main.contains("(`.github/instructions/demo.instructions.md`)"));
+        assert!(main.contains("(`.github/skills/demo/SKILL.md`)"));
         assert!(main.contains("## agent-behavior\n\n# agent-behavior\nBody of agent-behavior.\n"));
         assert!(!main.starts_with("---"));
-        let per = render_one(
-            &skills,
-            Format::Copilot,
-            out,
-            ".github/instructions/demo.instructions.md",
+        assert_eq!(
+            render(&skills, Format::Copilot).unwrap().len(),
+            1,
+            "index only"
         );
-        assert!(per.starts_with("---\napplyTo: \"**\"\ndescription: Demo skill.\n---\n"));
     }
 
     #[test]
