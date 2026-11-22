@@ -1,0 +1,75 @@
+# Model gateway config for `skillctl ask` / `skillctl models`.
+# Copy to skillctl.yaml and edit. API keys are NEVER written here: each model names the
+# environment variable that holds its key (api_key_env). Prices are USD per 1M tokens —
+# check your provider's current pricing; the values below are examples dated 2026-11.
+#
+# provider: openai    → any OpenAI-compatible Chat Completions API (base_url ends at /v1 or equivalent)
+# provider: anthropic → Anthropic Messages API (base_url https://api.anthropic.com)
+# tier: T1 top-ranked · T2 strong mid-cost · T3 small/free/local (see `skillctl route`)
+# local: true / compliant: true → allowed for `--sensitive` requests
+
+timeout_secs: 600
+
+models:
+  # --- Free / local (T3). Install Ollama, pull a model, then edit `model`. ---
+  - id: local-small
+    provider: openai
+    base_url: http://localhost:11434/v1
+    model: qwen3:8b            # example — use a model you have pulled (`ollama list`)
+    tier: T3
+    local: true
+    price_in: 0
+    price_out: 0
+
+  # --- Anthropic (prices from the Anthropic model table cached 2026-11-03) ---
+  - id: claude-haiku
+    provider: anthropic
+    base_url: https://api.anthropic.com
+    model: claude-haiku-5-5
+    tier: T3
+    api_key_env: ANTHROPIC_API_KEY
+    price_in: 0.10
+    price_out: 0.50
+
+  - id: claude-sonnet
+    provider: anthropic
+    base_url: https://api.anthropic.com
+    model: claude-sonnet-5-5
+    tier: T2
+    api_key_env: ANTHROPIC_API_KEY
+    server_fallback: true      # Anthropic retries a refusal on a fallback model server-side
+    price_in: 2.00
+    price_out: 10.00
+
+  - id: claude-opus
+    provider: anthropic
+    base_url: https://api.anthropic.com
+    model: claude-opus-5-5
+    tier: T1
+    api_key_env: ANTHROPIC_API_KEY
+    server_fallback: true
+    price_in: 4.00
+    price_out: 20.00
+
+  # --- Other OpenAI-compatible providers: uncomment and set a current model name ---
+  # - id: openrouter-mid
+  #   provider: openai
+  #   base_url: https://openrouter.ai/api/v1
+  #   model: <provider/model-name>
+  #   tier: T2
+  #   api_key_env: OPENROUTER_API_KEY
+  #
+  # - id: openai-top
+  #   provider: openai
+  #   base_url: https://api.openai.com/v1
+  #   model: <model-name>
+  #   tier: T1
+  #   api_key_env: OPENAI_API_KEY
+  #   max_tokens_param: max_completion_tokens   # some newer OpenAI models require this name
+  #
+  # - id: gemini-mid
+  #   provider: openai
+  #   base_url: https://generativelanguage.googleapis.com/v1beta/openai
+  #   model: <gemini-model-name>
+  #   tier: T2
+  #   api_key_env: GEMINI_API_KEY

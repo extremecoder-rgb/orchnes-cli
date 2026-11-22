@@ -8,7 +8,8 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Model tier: T1 top-ranked, T2 strong mid-cost, T3 small/free/local.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
+#[value(rename_all = "UPPER")]
 pub enum Tier {
     T1,
     T2,

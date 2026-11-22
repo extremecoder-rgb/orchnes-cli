@@ -3,7 +3,7 @@ name = "agent-orchestrator"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-description = "skillctl: load, validate, route and export Agent Skills — first step of the agent-skills runtime layer"
+description = "skillctl: load, validate, route, export Agent Skills and call models through one gateway — first step of the agent-skills runtime layer"
 readme = "README.md"
 
 [[bin]]
@@ -23,6 +23,10 @@ thiserror = "2"
 anyhow = "1"
 # Writes per-skill .zip files for Claude.ai upload; pure-Rust deflate only, no other codecs.
 zip = { version = "9", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+# Blocking HTTP client for the model gateway; small dependency tree, rustls TLS by default.
+ureq = "3"
+# Provider request/response bodies are free-form JSON.
+serde_json = "1"
 
 [dev-dependencies]
 # Self-cleaning temp dirs for fixtures and export tests.
